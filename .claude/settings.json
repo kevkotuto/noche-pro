@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx electron-vite build:*)",
+      "Bash(ls:*)",
+      "Bash(timeout 15 npx electron-vite dev:*)",
+      "Bash(node -e:*)",
+      "WebFetch(domain:electron-vite.org)",
+      "WebFetch(domain:www.electronjs.org)",
+      "Bash(npx electron-vite:*)",
+      "Bash(npx electron:*)",
+      "Bash(/Users/adelboudalha/Documents/noche-pro/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron:*)",
+      "Bash(git stash:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(echo:*)",
+      "Bash(env:*)",
+      "WebFetch(domain:cho.sh)",
+      "Bash(npm info:*)",
+      "Bash(python3:*)",
+      "Bash(git add:*)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
