@@ -1,5 +1,5 @@
 import { autoUpdater, UpdateInfo } from 'electron-updater'
-import { ipcMain, BrowserWindow, shell } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 
 export function setupAutoUpdater(getMainWindow: () => BrowserWindow | null): void {
   // In dev, autoUpdater needs a special config to work (or is silently skipped)
@@ -49,14 +49,9 @@ export function setupAutoUpdater(getMainWindow: () => BrowserWindow | null): voi
   })
 
   ipcMain.on('update:download', () => {
-    if (process.platform === 'darwin') {
-      // Mac without code signing → open download page
-      shell.openExternal('https://noche.generale-ci.com')
-    } else {
-      autoUpdater.downloadUpdate().catch(() => {
-        /* noop */
-      })
-    }
+    autoUpdater.downloadUpdate().catch(() => {
+      /* noop */
+    })
   })
 
   ipcMain.on('update:install', () => {
