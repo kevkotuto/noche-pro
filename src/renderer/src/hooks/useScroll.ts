@@ -1,62 +1,92 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import Fuse from 'fuse.js'
 import { useAppStore } from '../store/useAppStore'
 
-export function useScroll() {
-  const { currentScript, transcript, isSpeaking, status, setCurrentPosition } = useAppStore()
-  const wordsRef = useRef<string[]>([])
-  const fuseRef = useRef<Fuse<{ text: string; index: number }> | null>(null)
+const WINDOW_SIZE = 6
 
-  // Initialise l'index Fuse quand le script change
+export function useScroll() {
+  const { currentScript, transcript, status, currentPosition, setCurrentPosition } =
+    useAppStore()
+  const fuseRef = useRef<Fuse<{ text: string; index: number }> | null>(null)
+  const lastMatchedRef = useRef(0)
+
+  const words = useMemo(() => {
+    if (!currentScript) return []
+    return currentScript.content.split(/\s+/).filter(Boolean)
+  }, [currentScript])
+
+  // Build Fuse index when script changes
   useEffect(() => {
-    if (!currentScript) {
-      wordsRef.current = []
+    if (words.length === 0) {
       fuseRef.current = null
       return
     }
 
-    const words = currentScript.content.split(/\s+/).filter(Boolean)
-    wordsRef.current = words
+    const windows: { text: string; index: number }[] = []
+    const windowCount = Math.max(0, words.length - WINDOW_SIZE + 1)
 
-    // Créer des fenêtres glissantes de 6 mots pour le matching
-    const windows = words.reduce<{ text: string; index: number }[]>((acc, _, i) => {
-      if (i <= words.length - 6) {
-        acc.push({
-          text: words.slice(i, i + 6).join(' '),
-          index: i
-        })
-      }
-      return acc
-    }, [])
+    for (let i = 0; i < windowCount; i++) {
+      windows.push({
+        text: words.slice(i, i + WINDOW_SIZE).join(' '),
+        index: i
+      })
+    }
+
+    // For short scripts, add single-word and smaller windows
+    if (words.length < WINDOW_SIZE) {
+      windows.push({
+        text: words.join(' '),
+        index: 0
+      })
+    }
 
     fuseRef.current = new Fuse(windows, {
       keys: ['text'],
       threshold: 0.4,
-      includeScore: true
+      includeScore: true,
+      distance: 100
     })
-  }, [currentScript])
 
-  // Match les mots transcrits avec le script
+    lastMatchedRef.current = 0
+  }, [words])
+
+  // Match spoken words against script
   const matchPosition = useCallback(() => {
     if (!fuseRef.current || !transcript) return
 
-    const spokenWords = transcript.trim().split(/\s+/).slice(-6).join(' ')
-    if (spokenWords.length < 3) return
+    const spokenWords = transcript.trim().split(/\s+/)
+    const query = spokenWords.slice(-WINDOW_SIZE).join(' ')
+    if (query.length < 3) return
 
-    const results = fuseRef.current.search(spokenWords)
-    if (results.length > 0 && results[0].score !== undefined && results[0].score < 0.5) {
-      setCurrentPosition(results[0].item.index)
+    const results = fuseRef.current.search(query)
+    if (results.length === 0) return
+
+    const best = results[0]
+    if (best.score !== undefined && best.score < 0.5) {
+      const newPos = best.item.index + WINDOW_SIZE - 1
+      // Only move forward (or small backward for corrections)
+      if (newPos >= currentPosition - 3) {
+        const clampedPos = Math.min(newPos, words.length - 1)
+        if (clampedPos !== lastMatchedRef.current) {
+          lastMatchedRef.current = clampedPos
+          setCurrentPosition(clampedPos)
+        }
+      }
     }
-  }, [transcript, setCurrentPosition])
+  }, [transcript, currentPosition, words.length, setCurrentPosition])
 
-  // Lancer le matching quand on reçoit du transcript pendant le play
+  // Run matching on every transcript change while playing.
+  // No isSpeaking guard needed — the transcript only changes when the STT
+  // engine emits a new result, so there is no risk of spurious scrolling.
   useEffect(() => {
-    if (status === 'playing' && isSpeaking) {
+    if (status === 'playing') {
       matchPosition()
     }
-  }, [transcript, status, isSpeaking, matchPosition])
+  }, [transcript, status, matchPosition])
 
   return {
-    totalWords: wordsRef.current.length
+    totalWords: words.length,
+    words,
+    progress: words.length > 0 ? Math.round((currentPosition / words.length) * 100) : 0
   }
 }

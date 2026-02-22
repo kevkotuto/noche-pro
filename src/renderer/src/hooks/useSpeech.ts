@@ -1,81 +1,111 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useAppStore } from '../store/useAppStore'
+import { useAudioCapture } from './useAudioCapture'
 
 export function useSpeech() {
-  const { settings, setIsListening, setIsSpeaking, setTranscript } = useAppStore()
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const { settings, setIsListening, setIsSpeaking, setTranscript, setSpeechError } = useAppStore()
+  const { startCapture, stopCapture } = useAudioCapture()
   const lastSpeechTimeRef = useRef<number>(Date.now())
   const silenceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const cleanupResultRef = useRef<(() => void) | null>(null)
+  const activeRef = useRef(false)
 
-  const start = useCallback(() => {
-    if (recognitionRef.current) return
+  const start = useCallback(async () => {
+    if (activeRef.current) return
 
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      console.error('Web Speech API non supportée')
+    setSpeechError(null)
+
+    // Check if a model is selected
+    if (!settings.sttModelId) {
+      setSpeechError("Aucun modèle sélectionné. Ouvrez Paramètres pour en télécharger un.")
       return
     }
 
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = settings.language
+    // Start STT engine in main process
+    const result = await window.api.startStt({
+      modelId: settings.sttModelId,
+      language: settings.language
+    })
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    if (!result.success) {
+      const error = result.error || "Impossible de démarrer la reconnaissance vocale."
+      if (error.includes('non téléchargé') || error.includes('not found')) {
+        setSpeechError("Modèle non téléchargé. Allez dans Paramètres → Moteur de reconnaissance.")
+      } else {
+        setSpeechError(error)
+      }
+      return
+    }
+
+    // Listen for STT results from main process
+    cleanupResultRef.current = window.api.onSttResult((sttResult) => {
       lastSpeechTimeRef.current = Date.now()
       setIsSpeaking(true)
+      setTranscript(sttResult.text)
+    })
 
-      const transcript = Array.from(event.results)
-        .map((r) => r[0].transcript)
-        .join(' ')
-      setTranscript(transcript)
+    // Start audio capture in renderer (sends PCM to main process)
+    try {
+      await startCapture()
+    } catch (err) {
+      const msg =
+        err instanceof Error && err.name === 'NotAllowedError'
+          ? "Accès au microphone refusé. Vérifiez les permissions dans Préférences Système → Confidentialité."
+          : "Impossible d'accéder au microphone. Vérifiez qu'il est bien connecté."
+      setSpeechError(msg)
+      await window.api.stopStt()
+      return
     }
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error)
-      if (event.error === 'not-allowed') {
-        stop()
-      }
-    }
-
-    recognition.onend = () => {
-      // Auto-restart si on est toujours en écoute
-      if (recognitionRef.current) {
-        recognition.start()
-      }
-    }
-
-    recognition.start()
-    recognitionRef.current = recognition
+    activeRef.current = true
     setIsListening(true)
 
-    // Timer de détection de silence
+    // Silence detection timer
     silenceTimerRef.current = setInterval(() => {
       if (Date.now() - lastSpeechTimeRef.current > settings.silenceThreshold) {
         setIsSpeaking(false)
       }
     }, 200)
-  }, [settings.language, settings.silenceThreshold, setIsListening, setIsSpeaking, setTranscript])
+  }, [settings.sttModelId, settings.language, settings.silenceThreshold, startCapture, setIsListening, setIsSpeaking, setTranscript, setSpeechError])
 
-  const stop = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      recognitionRef.current = null
+  const stop = useCallback(async () => {
+    activeRef.current = false
+
+    // Stop audio capture
+    stopCapture()
+
+    // Stop STT engine
+    await window.api.stopStt()
+
+    // Cleanup result listener
+    if (cleanupResultRef.current) {
+      cleanupResultRef.current()
+      cleanupResultRef.current = null
     }
+
     if (silenceTimerRef.current) {
       clearInterval(silenceTimerRef.current)
       silenceTimerRef.current = null
     }
+
     setIsListening(false)
     setIsSpeaking(false)
-  }, [setIsListening, setIsSpeaking])
+  }, [stopCapture, setIsListening, setIsSpeaking])
 
   useEffect(() => {
     return () => {
-      stop()
+      if (activeRef.current) {
+        stopCapture()
+        window.api.stopStt()
+        if (cleanupResultRef.current) {
+          cleanupResultRef.current()
+        }
+      }
+      if (silenceTimerRef.current) {
+        clearInterval(silenceTimerRef.current)
+      }
     }
-  }, [stop])
+  }, [stopCapture])
 
   return { start, stop }
 }
