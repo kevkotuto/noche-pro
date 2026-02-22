@@ -137,11 +137,14 @@ jobs:
           rsync -avz \
             landing/index.html \
             ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/noche/
+          rsync -avz \
+            landing/images/ \
+            ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/var/www/noche/images/
 
       - name: Set file permissions
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "chmod -R 644 /var/www/noche/releases/* && chmod 755 /var/www/noche/releases && chmod 644 /var/www/noche/index.html"
+            "chmod -R 644 /var/www/noche/releases/* && chmod 755 /var/www/noche/releases && chmod 644 /var/www/noche/index.html && chmod -R 644 /var/www/noche/images/* && chmod 755 /var/www/noche/images"
 
       - name: Reload nginx
         run: |
