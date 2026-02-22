@@ -28,13 +28,15 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
 mac:
+  identity: "Developer ID Application: Ghossoub kevine Adel Junior Boudalha (6Z7FFC4MZ6)"
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+  notarize:
+    teamId: "6Z7FFC4MZ6"
   target:
     - target: dmg
       arch:
