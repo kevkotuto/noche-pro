@@ -4,3 +4,10 @@ out
 .DS_Store
 .eslintcache
 *.log*
+# Apple signing keys — never commit these
+*.p8
+*.p12
+*.key
+*.pem
+*.csr
+*.cer
