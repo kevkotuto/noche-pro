@@ -5,6 +5,9 @@ on:
     branches:
       - production
 
+permissions:
+  contents: write
+
 concurrency:
   group: release
   cancel-in-progress: false
@@ -156,3 +159,31 @@ jobs:
           echo "✅ NochePro deployed successfully!"
           echo "🌐 Landing page: https://noche.generale-ci.com"
           echo "📦 Releases: https://noche.generale-ci.com/releases/"
+
+  # ──────────────────────────────────────────────
+  # 4. Bump patch version for next release
+  # ──────────────────────────────────────────────
+  bump-version:
+    name: Bump version
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump patch version and push
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          git add package.json package-lock.json
+          git commit -m "chore: bump to v${NEW_VERSION} [skip ci]"
+          git push origin main
+          echo "🚀 Version bumped to v${NEW_VERSION}"
