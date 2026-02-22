@@ -99,6 +99,12 @@
       letter-spacing: -0.02em;
     }
 
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .nav-badge {
       font-size: 11px;
       padding: 4px 10px;
@@ -107,6 +113,27 @@
       color: var(--muted);
       background: rgba(255,255,255,0.04);
     }
+
+    .nav-github {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-github:hover {
+      border-color: rgba(255,255,255,0.2);
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+    }
+    .nav-github svg { width: 14px; height: 14px; }
 
     /* ── Hero ── */
     .hero {
@@ -392,11 +419,94 @@
     footer a { color: var(--muted); text-decoration: none; }
     footer a:hover { color: var(--text); }
 
+    /* ── Open source banner ── */
+    .oss-banner {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+      margin: 0 auto 64px;
+      padding: 0 24px;
+    }
+
+    .oss-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 28px 36px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,109,250,0.25);
+      background: linear-gradient(135deg, rgba(124,109,250,0.06) 0%, rgba(94,174,255,0.04) 100%);
+      flex-wrap: wrap;
+    }
+
+    .oss-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .oss-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(124,109,250,0.12);
+      border: 1px solid rgba(124,109,250,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .oss-icon svg { width: 22px; height: 22px; color: var(--accent); }
+
+    .oss-text h3 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 4px;
+    }
+
+    .oss-text p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .oss-text p a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .oss-text p a:hover { text-decoration: underline; }
+
+    .oss-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(124,109,250,0.4);
+      background: rgba(124,109,250,0.12);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .oss-btn:hover {
+      background: rgba(124,109,250,0.2);
+      border-color: rgba(124,109,250,0.6);
+    }
+    .oss-btn svg { width: 16px; height: 16px; }
+
     /* ── Responsive ── */
     @media (max-width: 600px) {
       nav { padding: 16px 20px; }
       .hero { padding: 64px 20px 60px; }
       .dl-btn { padding: 12px 18px; }
+      .oss-card { flex-direction: column; align-items: flex-start; padding: 20px; }
+      .nav-github span { display: none; }
     }
   </style>
 </head>
@@ -410,7 +520,15 @@
       <div class="logo-icon">N</div>
       <span class="logo-name">NochePro</span>
     </a>
-    <span class="nav-badge" id="version-badge">v0.1.0</span>
+    <div class="nav-links">
+      <span class="nav-badge" id="version-badge">v0.1.0</span>
+      <a class="nav-github" href="https://github.com/kevkotuto/noche-pro" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.021C22 6.484 17.522 2 12 2z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+    </div>
   </nav>
 
   <!-- Hero -->
@@ -475,6 +593,36 @@
     <span class="os-hint" id="os-hint">Détection du système en cours…</span>
   </section>
 
+  <!-- Install note -->
+  <div style="position:relative;z-index:1;max-width:620px;margin:-8px auto 40px;padding:0 24px;">
+    <details style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 18px;cursor:pointer;">
+      <summary style="font-size:13px;color:rgba(240,240,245,0.55);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;color:#7c6dfa"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        macOS : avertissement « logiciel non vérifié » au premier lancement
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:auto;transition:transform 0.2s"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div style="margin-top:12px;font-size:12.5px;color:rgba(240,240,245,0.6);line-height:1.7;display:flex;flex-direction:column;gap:10px;">
+        <p>Si macOS affiche un avertissement au premier lancement (versions en cours de notarisation), voici deux façons de le contourner :</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;">
+            <div style="font-weight:700;color:rgba(240,240,245,0.85);margin-bottom:6px;">Option 1 — Clic droit</div>
+            <ol style="padding-left:16px;display:flex;flex-direction:column;gap:4px;">
+              <li>Clic droit sur <strong>NochePro.app</strong></li>
+              <li>Choisir <strong>Ouvrir</strong></li>
+              <li>Cliquer <strong>Ouvrir quand même</strong></li>
+            </ol>
+          </div>
+          <div style="flex:1;min-width:200px;background:rgba(255,255,255,0.04);border-radius:8px;padding:12px 14px;">
+            <div style="font-weight:700;color:rgba(240,240,245,0.85);margin-bottom:6px;">Option 2 — Terminal</div>
+            <code style="display:block;background:rgba(0,0,0,0.4);border-radius:6px;padding:8px 10px;font-size:11px;color:#7c6dfa;word-break:break-all;">xattr -cr /Applications/NochePro.app</code>
+            <p style="margin-top:6px;font-size:11px;">Supprime le flag de quarantaine macOS.</p>
+          </div>
+        </div>
+        <p style="font-size:11px;color:rgba(240,240,245,0.35);">Cette exception est mémorisée par macOS — vous ne la verrez qu'une seule fois.</p>
+      </div>
+    </details>
+  </div>
+
   <!-- Features -->
   <section class="features">
     <div class="feature">
@@ -499,15 +647,48 @@
     </div>
   </section>
 
+  <!-- Open source banner -->
+  <div class="oss-banner">
+    <div class="oss-card">
+      <div class="oss-left">
+        <div class="oss-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.483 0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.021C22 6.484 17.522 2 12 2z"/>
+          </svg>
+        </div>
+        <div class="oss-text">
+          <h3>NochePro est 100% open source</h3>
+          <p>
+            Code source disponible sur <a href="https://github.com/kevkotuto/noche-pro" target="_blank" rel="noopener">GitHub</a>.
+            Bug à signaler, idée à proposer ou fonctionnalité à ajouter ?<br />
+            Tout le monde peut contribuer — la communauté est la bienvenue.
+          </p>
+        </div>
+      </div>
+      <a class="oss-btn" href="https://github.com/kevkotuto/noche-pro" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+          <path d="M9 18c-4.51 2-5-2-7-2"/>
+        </svg>
+        Contribuer sur GitHub
+      </a>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer>
     <div>
-      <strong>NochePro</strong> &mdash; Open source, gratuit
+      <strong>NochePro</strong> &mdash; Open source &amp; gratuit
     </div>
     <div>
-      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/kevkotuto/noche-pro" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/kevkotuto/noche-pro/issues" target="_blank" rel="noopener">Signaler un bug</a>
       &nbsp;·&nbsp;
       <a href="/releases/">Toutes les versions</a>
+    </div>
+    <div style="margin-top:4px;font-size:11px;opacity:0.45;">
+      Fait avec passion par la communauté &mdash; Licence MIT
     </div>
   </footer>
 
