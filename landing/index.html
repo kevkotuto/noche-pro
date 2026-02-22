@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NochePro — Téléprompter vocal pour MacBook</title>
+  <meta name="description" content="Téléprompter intelligent piloté par la voix, affiché discrètement dans l'encoche de votre MacBook." />
+  <meta property="og:title" content="NochePro" />
+  <meta property="og:description" content="Téléprompter vocal pour MacBook, discret et intelligent." />
+  <meta property="og:image" content="/og-image.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --border:    rgba(255,255,255,0.07);
+      --text:      #f0f0f5;
+      --muted:     rgba(240,240,245,0.45);
+      --accent:    #7c6dfa;
+      --accent-2:  #5eaeff;
+      --green:     #4ade80;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background grid ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Glow orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+    .orb-1 { width: 600px; height: 600px; background: var(--accent); top: -200px; left: -150px; }
+    .orb-2 { width: 500px; height: 500px; background: var(--accent-2); bottom: -150px; right: -100px; }
+
+    /* ── Nav ── */
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      background: rgba(10,10,15,0.6);
+      position: sticky;
+      top: 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .logo-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 96px 24px 80px;
+      gap: 32px;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(124,109,250,0.3);
+      background: rgba(124,109,250,0.08);
+      font-size: 12px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .hero-tag::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-size: clamp(42px, 6vw, 76px);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+      max-width: 800px;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--muted);
+      max-width: 540px;
+      line-height: 1.6;
+    }
+
+    /* ── Notch mockup ── */
+    .notch-wrapper {
+      position: relative;
+      width: 340px;
+      height: 56px;
+      margin: 8px 0;
+    }
+
+    .notch-bar {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 130px;
+      height: 34px;
+      background: #000;
+      border-radius: 0 0 22px 22px;
+      z-index: 3;
+    }
+
+    .notch-glow {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 260px;
+      height: 40px;
+      background: linear-gradient(90deg, transparent, rgba(124,109,250,0.25), rgba(94,174,255,0.15), transparent);
+      filter: blur(6px);
+      border-radius: 12px;
+      animation: glowShift 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes glowShift {
+      from { opacity: 0.5; width: 220px; }
+      to   { opacity: 0.9; width: 300px; }
+    }
+
+    .notch-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── Downloads ── */
+    .downloads {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 8px;
+    }
+
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 22px;
+      border-radius: 14px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dl-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.2s;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .dl-btn:hover::before { opacity: 1; }
+    .dl-btn:hover { border-color: rgba(255,255,255,0.15); transform: translateY(-1px); }
+
+    .dl-btn.primary {
+      background: linear-gradient(135deg, rgba(124,109,250,0.2), rgba(94,174,255,0.1));
+      border-color: rgba(124,109,250,0.4);
+    }
+    .dl-btn.primary:hover { border-color: rgba(124,109,250,0.7); }
+
+    .dl-icon {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dl-icon svg { width: 28px; height: 28px; }
+
+    .dl-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+
+    .dl-label small {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+    }
+
+    .dl-label strong {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .dl-badge {
+      position: absolute;
+      top: -1px;
+      right: -1px;
+      font-size: 9px;
+      padding: 3px 7px;
+      background: var(--accent);
+      color: white;
+      border-radius: 0 13px 0 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .os-hint {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .os-hint::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    /* ── Features ── */
+    .features {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1px;
+      max-width: 900px;
+      margin: 0 auto 96px;
+      padding: 0 24px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      background: var(--border);
+    }
+
+    .feature {
+      background: var(--surface);
+      padding: 28px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .feature-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(124,109,250,0.12);
+      border: 1px solid rgba(124,109,250,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .feature h3 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .feature p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 32px 24px 40px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .hero { padding: 64px 20px 60px; }
+      .dl-btn { padding: 12px 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <!-- Nav -->
+  <nav>
+    <a class="logo" href="/">
+      <div class="logo-icon">N</div>
+      <span class="logo-name">NochePro</span>
+    </a>
+    <span class="nav-badge" id="version-badge">v0.1.0</span>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <span class="hero-tag">Téléprompter vocal</span>
+
+    <h1>Le téléprompter qui<br /><span>disparaît dans l'encoche</span></h1>
+
+    <p class="hero-sub">
+      Lisez vos scripts naturellement pendant vos enregistrements. NochePro se glisse
+      dans l'encoche de votre MacBook et suit votre voix en temps réel.
+    </p>
+
+    <!-- Notch mockup -->
+    <div class="notch-wrapper" aria-hidden="true">
+      <div class="notch-glow"></div>
+      <div class="notch-bar"></div>
+      <div class="notch-text">▶ Enregistrement en cours…</div>
+    </div>
+
+    <!-- Download buttons -->
+    <div class="downloads" id="downloads">
+
+      <a class="dl-btn primary" id="btn-mac-arm" href="/releases/noche-pro-latest-arm64.dmg">
+        <span class="dl-badge">Recommandé</span>
+        <span class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+        </span>
+        <span class="dl-label">
+          <small>macOS</small>
+          <strong>Apple Silicon</strong>
+        </span>
+      </a>
+
+      <a class="dl-btn" id="btn-mac-x64" href="/releases/noche-pro-latest-x64.dmg">
+        <span class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+          </svg>
+        </span>
+        <span class="dl-label">
+          <small>macOS</small>
+          <strong>Intel (x64)</strong>
+        </span>
+      </a>
+
+      <a class="dl-btn" id="btn-win" href="/releases/noche-pro-latest-setup.exe">
+        <span class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 5.557L10.537 4.5V11.5H3V5.557zM11.463 4.357L21 3V11.5H11.463V4.357zM3 12.5H10.537V19.5L3 18.443V12.5zM11.463 12.5H21V21L11.463 19.643V12.5z"/>
+          </svg>
+        </span>
+        <span class="dl-label">
+          <small>Windows</small>
+          <strong>Windows x64</strong>
+        </span>
+      </a>
+    </div>
+
+    <span class="os-hint" id="os-hint">Détection du système en cours…</span>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="feature">
+      <div class="feature-icon">🎙️</div>
+      <h3>Voix → Défilement</h3>
+      <p>Le téléprompter suit votre voix automatiquement grâce à la reconnaissance vocale embarquée.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🌙</div>
+      <h3>Dans l'encoche</h3>
+      <p>S'affiche directement dans l'encoche du MacBook. Discret, élégant, toujours visible.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>100% local</h3>
+      <p>Aucune donnée envoyée en ligne. Le moteur STT tourne entièrement sur votre machine.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🪟</div>
+      <h3>Multi-plateforme</h3>
+      <p>Disponible sur macOS (Apple Silicon &amp; Intel) et Windows. Mises à jour automatiques.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      <strong>NochePro</strong> &mdash; Open source, gratuit
+    </div>
+    <div>
+      <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      &nbsp;·&nbsp;
+      <a href="/releases/">Toutes les versions</a>
+    </div>
+  </footer>
+
+  <script>
+    // ── OS detection ──────────────────────────────────────
+    const ua = navigator.userAgent || '';
+    const hint = document.getElementById('os-hint');
+    const btnMacArm = document.getElementById('btn-mac-arm');
+    const btnMacX64 = document.getElementById('btn-mac-x64');
+    const btnWin    = document.getElementById('btn-win');
+
+    function highlightBtn(btn) {
+      document.querySelectorAll('.dl-btn').forEach(b => b.classList.remove('primary'));
+      btn.classList.add('primary');
+      // Move "Recommandé" badge
+      document.querySelectorAll('.dl-badge').forEach(b => b.remove());
+      const badge = document.createElement('span');
+      badge.className = 'dl-badge';
+      badge.textContent = 'Recommandé';
+      btn.appendChild(badge);
+    }
+
+    if (/Windows/.test(ua)) {
+      highlightBtn(btnWin);
+      hint.textContent = 'Windows détecté — installer recommandé';
+    } else if (/Mac/.test(ua)) {
+      // Les navigateurs sur Apple Silicon (M1/M2/M3) rapportent toujours
+      // 'MacIntel' pour compatibilité. On utilise userAgentData si dispo
+      // (Chromium), sinon on tente la détection WebGL, sinon défaut ARM
+      // puisque tous les Mac depuis fin 2020 sont Apple Silicon.
+      function detectMacArch() {
+        // 1. userAgentData (Chrome/Edge)
+        if (navigator.userAgentData) {
+          navigator.userAgentData.getHighEntropyValues(['architecture'])
+            .then(function(data) {
+              if (data.architecture && data.architecture.includes('arm')) {
+                hint.textContent = 'Apple Silicon (M1/M2/M3) détecté';
+                highlightBtn(btnMacArm);
+              } else {
+                hint.textContent = 'Mac Intel détecté';
+                highlightBtn(btnMacX64);
+              }
+            })
+            .catch(function() {
+              // Fallback: Apple Silicon par défaut (majorité des Macs récents)
+              hint.textContent = 'Mac détecté — Apple Silicon recommandé';
+              highlightBtn(btnMacArm);
+            });
+        } else {
+          // Safari / Firefox : pas de userAgentData fiable
+          // Par défaut Apple Silicon (M1+ depuis fin 2020)
+          hint.textContent = 'Mac détecté — Apple Silicon recommandé';
+          highlightBtn(btnMacArm);
+        }
+      }
+      detectMacArch();
+    } else {
+      hint.textContent = 'Choisissez votre système ci-dessus';
+      hint.style.setProperty('--green', 'rgba(240,240,245,0.4)');
+    }
+
+    // ── Fetch latest version from releases ────────────────
+    fetch('/releases/latest-mac.yml')
+      .then(r => r.text())
+      .then(text => {
+        const match = text.match(/^version:\s*(.+)$/m);
+        if (match) {
+          const v = match[1].trim();
+          const badge = document.getElementById('version-badge');
+          if (badge) badge.textContent = 'v' + v;
+          // Update download hrefs with real version
+          btnMacArm.href = '/releases/noche-pro-' + v + '-arm64.dmg';
+          btnMacX64.href = '/releases/noche-pro-' + v + '-x64.dmg';
+        }
+      })
+      .catch(() => {/* fallback href already set */});
+
+    fetch('/releases/latest.yml')
+      .then(r => r.text())
+      .then(text => {
+        const match = text.match(/^version:\s*(.+)$/m);
+        if (match) {
+          const v = match[1].trim();
+          btnWin.href = '/releases/noche-pro-' + v + '-setup.exe';
+        }
+      })
+      .catch(() => {});
+  </script>
+</body>
+</html>

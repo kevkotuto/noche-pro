@@ -13,6 +13,7 @@ import {
   isModelDownloading
 } from './models'
 import { createEngine, type SttEngine } from './stt-engine'
+import { setupAutoUpdater } from './updater'
 
 // ── Simple JSON store (CJS-compatible, no ESM-only deps) ──
 class JsonStore {
@@ -428,6 +429,7 @@ app.whenReady().then(async () => {
 
   setupIPC()
   createMainWindow()
+  if (app.isPackaged) setupAutoUpdater(() => mainWindow)
   // Create prompter window in advance so it's ready when the user hits Play.
   // If created lazily (on first 'prompter:show'), IPC messages sent immediately
   // after arrive while webcontents are still loading and are silently dropped.

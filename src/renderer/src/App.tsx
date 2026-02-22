@@ -4,6 +4,7 @@ import ContentArea from './components/ContentArea'
 import ControlPanel from './components/ControlPanel'
 import Settings from './components/Settings'
 import Prompter from './components/Prompter'
+import UpdateBanner from './components/UpdateBanner'
 import { useAppStore } from './store/useAppStore'
 
 const isPrompterWindow = window.location.hash === '#prompter'
@@ -47,6 +48,9 @@ function App(): React.JSX.Element {
           <ControlPanel />
         </div>
       </div>
+
+      {/* ── Update banner ── */}
+      <UpdateBanner />
 
       {/* ── Main layout ── */}
       <div className="flex flex-1 overflow-hidden border-t border-[var(--color-border)]">

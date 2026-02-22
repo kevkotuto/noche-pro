@@ -81,6 +81,32 @@ const api = {
     return () => {
       ipcRenderer.removeListener('stt:result', handler)
     }
+  },
+
+  // ── Auto-updater ──
+  checkForUpdate: () => ipcRenderer.invoke('update:check'),
+  downloadUpdate: () => ipcRenderer.send('update:download'),
+  installUpdate: () => ipcRenderer.send('update:install'),
+  onUpdateAvailable: (callback: (info: { version: string; releaseDate: string }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, info: { version: string; releaseDate: string }) =>
+      callback(info)
+    ipcRenderer.on('update:available', handler)
+    return () => ipcRenderer.removeListener('update:available', handler)
+  },
+  onUpdateProgress: (
+    callback: (p: { percent: number; transferred: number; total: number }) => void
+  ) => {
+    const handler = (
+      _e: Electron.IpcRendererEvent,
+      p: { percent: number; transferred: number; total: number }
+    ) => callback(p)
+    ipcRenderer.on('update:progress', handler)
+    return () => ipcRenderer.removeListener('update:progress', handler)
+  },
+  onUpdateDownloaded: (callback: (info: { version: string }) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, info: { version: string }) => callback(info)
+    ipcRenderer.on('update:downloaded', handler)
+    return () => ipcRenderer.removeListener('update:downloaded', handler)
   }
 }
 

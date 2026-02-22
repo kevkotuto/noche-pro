@@ -41,6 +41,14 @@ interface NocheProAPI {
   stopStt: () => Promise<{ success: boolean }>
   sendAudioChunk: (chunk: ArrayBuffer) => void
   onSttResult: (callback: (result: SttResultEvent) => void) => () => void
+
+  // Auto-updater
+  checkForUpdate: () => Promise<void>
+  downloadUpdate: () => void
+  installUpdate: () => void
+  onUpdateAvailable: (callback: (info: { version: string; releaseDate: string }) => void) => () => void
+  onUpdateProgress: (callback: (p: { percent: number; transferred: number; total: number }) => void) => () => void
+  onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void
 }
 
 export {}
