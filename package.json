@@ -1,6 +1,6 @@
 {
   "name": "noche-pro",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Téléprompter intelligent piloté par la voix — Affiché dans l'encoche du MacBook",
   "main": "./out/main/index.js",
   "author": "NochePro",
