@@ -11,7 +11,7 @@ interface Microphone {
 }
 
 interface DownloadState {
-  [modelId: string]: number
+  [modelId: string]: { percent: number; error?: string }
 }
 
 /* ── Shared atoms ── */
@@ -133,7 +133,7 @@ export default function Settings() {
 
   useEffect(() => {
     const cleanup = window.api.onDownloadProgress((progress) => {
-      setDownloadProgress((prev) => ({ ...prev, [progress.modelId]: progress.percent }))
+      setDownloadProgress((prev) => ({ ...prev, [progress.modelId]: { percent: progress.percent } }))
     })
     return cleanup
   }, [])
@@ -161,14 +161,30 @@ export default function Settings() {
   }, [])
 
   const handleDownloadModel = async (modelId: string) => {
-    setDownloadProgress((prev) => ({ ...prev, [modelId]: 0 }))
+    setDownloadProgress((prev) => ({ ...prev, [modelId]: { percent: 0 } }))
     const result = await window.api.downloadSttModel(modelId)
-    if (result.success) await loadModels()
-    setDownloadProgress((prev) => {
-      const next = { ...prev }
-      delete next[modelId]
-      return next
-    })
+    // Always refresh model list so the UI reflects the real state
+    await loadModels()
+    if (!result.success) {
+      // Show error briefly, then clear
+      setDownloadProgress((prev) => ({
+        ...prev,
+        [modelId]: { percent: 0, error: result.error || 'Échec du téléchargement' }
+      }))
+      setTimeout(() => {
+        setDownloadProgress((prev) => {
+          const next = { ...prev }
+          delete next[modelId]
+          return next
+        })
+      }, 4000)
+    } else {
+      setDownloadProgress((prev) => {
+        const next = { ...prev }
+        delete next[modelId]
+        return next
+      })
+    }
   }
 
   const handleDeleteModel = async (modelId: string) => {
@@ -394,9 +410,11 @@ export default function Settings() {
 
               <div className="flex flex-col gap-2">
                 {filteredModels.map((model) => {
-                  const isDownloading = downloadProgress[model.id] !== undefined
+                  const dlState = downloadProgress[model.id]
+                  const isDownloading = dlState !== undefined
+                  const hasError = dlState?.error !== undefined
                   const isSelected = settings.sttModelId === model.id
-                  const percent = downloadProgress[model.id] ?? 0
+                  const percent = dlState?.percent ?? 0
 
                   return (
                     <div
@@ -407,6 +425,8 @@ export default function Settings() {
                           ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5'
                           : model.downloaded
                           ? 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-text-muted)]/40 cursor-pointer'
+                          : hasError
+                          ? 'border-red-500/30 bg-[var(--color-surface)]'
                           : 'border-[var(--color-border)] bg-[var(--color-surface)]'
                       }`}
                     >
@@ -426,6 +446,11 @@ export default function Settings() {
                           <p className="text-[11px] text-[var(--color-text-muted)] mt-1 leading-relaxed">
                             {model.description}
                           </p>
+                          {hasError && (
+                            <p className="text-[11px] text-red-500 mt-1">
+                              {dlState?.error}
+                            </p>
+                          )}
                         </div>
 
                         <div className="shrink-0">
@@ -440,22 +465,26 @@ export default function Settings() {
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                               </svg>
                             </button>
-                          ) : isDownloading ? (
+                          ) : isDownloading && !hasError ? (
                             <span className="text-[12px] text-[var(--color-primary)] tabular-nums font-semibold min-w-[36px] text-right">
                               {percent}%
                             </span>
                           ) : (
                             <button
                               onClick={(e) => { e.stopPropagation(); handleDownloadModel(model.id) }}
-                              className="text-[12px] px-3 py-1.5 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white transition-colors font-medium cursor-pointer"
+                              className={`text-[12px] px-3 py-1.5 rounded-lg text-white transition-colors font-medium cursor-pointer ${
+                                hasError
+                                  ? 'bg-red-500 hover:bg-red-600'
+                                  : 'bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]'
+                              }`}
                             >
-                              Télécharger
+                              {hasError ? 'Réessayer' : 'Télécharger'}
                             </button>
                           )}
                         </div>
                       </div>
 
-                      {isDownloading && (
+                      {isDownloading && !hasError && (
                         <div className="mt-3 h-1.5 bg-[var(--color-border)] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-[var(--color-primary)] rounded-full transition-all duration-300"

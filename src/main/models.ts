@@ -21,26 +21,39 @@ interface ModelCatalogEntry {
   extractedDir?: string
 }
 
+const MODELS_BASE_URL = 'https://noche.generale-ci.com/releases/models'
+
 const MODEL_CATALOG: ModelCatalogEntry[] = [
   {
     id: 'sherpa-streaming-zipformer-fr',
     engine: 'sherpa',
     name: 'Sherpa Zipformer FR (streaming)',
     description: 'Modèle français streaming — reconnaissance en temps réel, mot à mot',
-    size: '70 MB',
-    sizeBytes: 70_000_000,
-    url: 'https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-fr-2023-04-14.tar.bz2',
+    size: '380 MB',
+    sizeBytes: 398_444_115,
+    url: `${MODELS_BASE_URL}/sherpa-onnx-streaming-zipformer-fr-2023-04-14.tar.bz2`,
     language: 'fr',
     extractedDir: 'sherpa-onnx-streaming-zipformer-fr-2023-04-14'
+  },
+  {
+    id: 'sherpa-streaming-zipformer-en',
+    engine: 'sherpa',
+    name: 'Sherpa Zipformer EN (streaming)',
+    description: 'Modèle anglais streaming — reconnaissance en temps réel, mot à mot',
+    size: '296 MB',
+    sizeBytes: 310_414_022,
+    url: `${MODELS_BASE_URL}/sherpa-onnx-streaming-zipformer-en-2023-06-26.tar.bz2`,
+    language: 'en',
+    extractedDir: 'sherpa-onnx-streaming-zipformer-en-2023-06-26'
   },
   {
     id: 'whisper-tiny',
     engine: 'whisper',
     name: 'Whisper Tiny',
     description: 'Modèle OpenAI Whisper léger — rapide, multilingue',
-    size: '75 MB',
-    sizeBytes: 75_000_000,
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin',
+    size: '74 MB',
+    sizeBytes: 77_691_713,
+    url: `${MODELS_BASE_URL}/ggml-tiny.bin`,
     language: 'multi'
   },
   {
@@ -48,9 +61,9 @@ const MODEL_CATALOG: ModelCatalogEntry[] = [
     engine: 'whisper',
     name: 'Whisper Base',
     description: 'Modèle OpenAI Whisper équilibré — bonne qualité, multilingue',
-    size: '142 MB',
-    sizeBytes: 142_000_000,
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin',
+    size: '141 MB',
+    sizeBytes: 147_951_465,
+    url: `${MODELS_BASE_URL}/ggml-base.bin`,
     language: 'multi'
   },
   {
@@ -58,9 +71,9 @@ const MODEL_CATALOG: ModelCatalogEntry[] = [
     engine: 'whisper',
     name: 'Whisper Small',
     description: 'Modèle OpenAI Whisper précis — haute qualité, multilingue',
-    size: '466 MB',
-    sizeBytes: 466_000_000,
-    url: 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin',
+    size: '465 MB',
+    sizeBytes: 487_601_967,
+    url: `${MODELS_BASE_URL}/ggml-small.bin`,
     language: 'multi'
   }
 ]
@@ -132,7 +145,10 @@ interface HeadInfo {
   acceptRanges: boolean
 }
 
-/** HEAD request to get file size and check Range support */
+/** HEAD request to get file size and check Range support.
+ *  Uses the LAST content-length in the header chain to handle redirects
+ *  (e.g. GitHub returns Content-Length: 0 in the 302, then the real size in the CDN 200).
+ */
 function curlHead(url: string): Promise<HeadInfo> {
   return new Promise((resolve, reject) => {
     let output = ''
@@ -140,8 +156,11 @@ function curlHead(url: string): Promise<HeadInfo> {
     curl.stdout.on('data', (d: Buffer) => { output += d.toString() })
     curl.on('close', (code) => {
       if (code !== 0) { reject(new Error(`curl HEAD exited with code ${code}`)); return }
-      const clMatch = output.match(/content-length:\s*(\d+)/i)
-      const contentLength = clMatch ? parseInt(clMatch[1], 10) : 0
+      // Use LAST content-length to get the final redirect's real size
+      // (GitHub 302 returns Content-Length: 0, CDN 200 returns the real size)
+      const clMatches = [...output.matchAll(/content-length:\s*(\d+)/gi)]
+      const lastCl = clMatches.length > 0 ? clMatches[clMatches.length - 1] : null
+      const contentLength = lastCl ? parseInt(lastCl[1], 10) : 0
       const acceptRanges = /accept-ranges:\s*bytes/i.test(output)
       resolve({ contentLength, acceptRanges })
     })
@@ -185,12 +204,10 @@ function curlSingle(url: string, destFile: string): Promise<void> {
 
 /** Concatenate segment files into the final file */
 function consolidateSegments(segmentPaths: string[], destFile: string): Promise<void> {
-  // Use cat to concatenate all parts in order
   const args = segmentPaths.map((p) => `"${p}"`).join(' ')
   return new Promise((resolve, reject) => {
     exec(`cat ${args} > "${destFile}"`, (err) => {
       if (err) { reject(err); return }
-      // Clean up segment files
       for (const p of segmentPaths) {
         try { rmSync(p, { force: true }) } catch { /* noop */ }
       }
@@ -274,7 +291,6 @@ function curlDownload(
         )
       } catch (err) {
         clearInterval(progressInterval)
-        // Clean up partial segments
         for (const seg of segments) {
           try { rmSync(seg.path, { force: true }) } catch { /* noop */ }
         }
@@ -332,22 +348,34 @@ export async function downloadModel(
 
       await curlDownload(url, tmpFile, entry.sizeBytes, onProgress)
 
-      // Extract
+      // Extract + rename (progress stays at 100% during extraction)
       await new Promise<void>((resolve, reject) => {
         exec(`tar xjf "${tmpFile}" -C "${getModelsDir()}"`, (err) => {
           try { rmSync(tmpFile, { force: true }) } catch { /* noop */ }
+
           if (err) {
-            reject(err)
+            reject(new Error(`Extraction failed: ${err.message}`))
             return
           }
 
           // Rename extracted dir to modelDir
           if (entry.extractedDir) {
             const extracted = join(getModelsDir(), entry.extractedDir)
-            if (existsSync(extracted) && extracted !== modelDir) {
-              rmSync(modelDir, { recursive: true, force: true })
-              renameSync(extracted, modelDir)
+            try {
+              if (existsSync(extracted) && extracted !== modelDir) {
+                rmSync(modelDir, { recursive: true, force: true })
+                renameSync(extracted, modelDir)
+              }
+            } catch (renameErr) {
+              reject(new Error(`Rename failed: ${(renameErr as Error).message}`))
+              return
             }
+          }
+
+          // Verify the model directory has files
+          if (!isModelDownloaded(modelId)) {
+            reject(new Error('Extraction succeeded but model directory is empty'))
+            return
           }
 
           resolve()
@@ -363,7 +391,7 @@ export async function downloadModel(
         exec(`unzip -o "${tmpZip}" -d "${modelDir}"`, (err) => {
           try { rmSync(tmpZip, { force: true }) } catch { /* noop */ }
           if (err) {
-            reject(err)
+            reject(new Error(`Extraction failed: ${err.message}`))
             return
           }
           resolve()
@@ -376,7 +404,8 @@ export async function downloadModel(
       await curlDownload(url, destFile, entry.sizeBytes, onProgress)
     }
   } catch (err) {
-    rmSync(modelDir, { recursive: true, force: true })
+    // Clean up on failure
+    try { rmSync(modelDir, { recursive: true, force: true }) } catch { /* noop */ }
     activeDownloads.delete(modelId)
     throw err
   }
