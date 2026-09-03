@@ -17,10 +17,25 @@
       "WebFetch(domain:cho.sh)",
       "Bash(npm info:*)",
       "Bash(python3:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(chmod:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(curl:*)",
+      "Bash(gh run list:*)",
+      "Bash(git push:*)",
+      "Bash(gh run watch:*)",
+      "Bash(gh run view:*)",
+      "Bash(__NEW_LINE_76c038f06b422b26__ echo \"=== Headers EXE ===\")",
+      "Bash(security find-identity:*)",
+      "Bash(gh secret set:*)",
+      "Bash(gh secret list:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:k2-fsa.github.io)"
     ],
     "additionalDirectories": [
-      "/tmp"
+      "/tmp",
+      "/Users/adelboudalha/Desktop"
     ]
   }
 }
